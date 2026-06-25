@@ -31,8 +31,8 @@ export default function Sidebar({ open, onClose }) {
       )}>
         <div className="flex h-16 items-center justify-between px-6">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 shadow-glow">
-              <ShieldCheck className="h-5 w-5 text-white" />
+            <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-xl bg-white ring-1 ring-slate-200 dark:ring-slate-700">
+              <img src="/logo.jpeg" alt="Tag" className="h-full w-full object-contain p-0.5" />
             </div>
             <div>
               <p className="text-sm font-extrabold leading-tight text-slate-800 dark:text-white">Tag</p>
