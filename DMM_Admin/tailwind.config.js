@@ -5,20 +5,20 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Admin portal uses a violet accent to distinguish it from the product app.
+        // Tag brand accent (orange), matching the logo.
         brand: {
-          50: '#f5f3ff', 100: '#ede9fe', 200: '#ddd6fe', 300: '#c4b5fd',
-          400: '#a78bfa', 500: '#8b5cf6', 600: '#7c3aed', 700: '#6d28d9',
-          800: '#5b21b6', 900: '#4c1d95',
+          50: '#fff7ed', 100: '#ffedd5', 200: '#fed7aa', 300: '#fdba74',
+          400: '#fb923c', 500: '#f97316', 600: '#ea580c', 700: '#c2410c',
+          800: '#9a3412', 900: '#7c2d12',
         },
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
       },
       boxShadow: {
-        soft: '0 2px 8px -2px rgba(0,0,0,0.06), 0 4px 16px -4px rgba(0,0,0,0.08)',
-        card: '0 1px 3px rgba(0,0,0,0.05), 0 8px 24px -8px rgba(0,0,0,0.10)',
-        glow: '0 0 0 1px rgba(124,58,237,0.1), 0 8px 32px -8px rgba(124,58,237,0.25)',
+        soft: '0 1px 2px rgba(15,23,42,0.04), 0 2px 8px -4px rgba(15,23,42,0.06)',
+        card: '0 1px 2px rgba(15,23,42,0.04), 0 4px 16px -8px rgba(15,23,42,0.08)',
+        glow: '0 1px 3px rgba(15,23,42,0.05), 0 8px 24px -12px rgba(15,23,42,0.12)',
       },
       keyframes: {
         'fade-in': { from: { opacity: 0, transform: 'translateY(8px)' }, to: { opacity: 1, transform: 'translateY(0)' } },
