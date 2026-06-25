@@ -52,6 +52,6 @@ body {
       dark:text-slate-400 transition-all hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white;
   }
   .sidebar-link-active {
-    @apply bg-brand-600 text-white shadow-glow hover:bg-brand-600 hover:text-white;
+    @apply bg-brand-600 text-white hover:bg-brand-600 hover:text-white;
   }
 }

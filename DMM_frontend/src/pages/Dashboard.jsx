@@ -76,17 +76,17 @@ export default function Dashboard() {
 
       {/* Top platform highlight (CEO) */}
       {isCEO && topData?.topPlatform && (
-        <Card className="flex items-center justify-between bg-gradient-to-r from-brand-600 to-indigo-700 p-6 text-white">
+        <Card className="flex items-center justify-between p-6">
           <div className="flex items-center gap-4">
-            <div className="rounded-2xl bg-white/15 p-3"><Award className="h-7 w-7" /></div>
+            <div className="rounded-2xl bg-brand-50 p-3 text-brand-600 dark:bg-brand-500/10"><Award className="h-7 w-7" /></div>
             <div>
-              <p className="text-sm text-brand-100">Top Performing Platform</p>
-              <p className="text-2xl font-extrabold">{topData.topPlatform.platform}</p>
+              <p className="text-sm text-slate-400">Top performing platform</p>
+              <p className="text-2xl font-extrabold text-slate-800 dark:text-white">{topData.topPlatform.platform}</p>
             </div>
           </div>
           <div className="hidden gap-8 text-right sm:flex">
-            <div><p className="text-2xl font-bold">{topData.topPlatform.engagementRate?.toFixed(1)}%</p><p className="text-xs text-brand-100">Engagement</p></div>
-            <div className="flex items-center"><TrendingUp className="h-8 w-8 text-brand-200" /></div>
+            <div><p className="text-2xl font-bold text-slate-800 dark:text-white">{topData.topPlatform.engagementRate?.toFixed(1)}%</p><p className="text-xs text-slate-400">Engagement</p></div>
+            <div className="flex items-center"><TrendingUp className="h-8 w-8 text-brand-300" /></div>
           </div>
         </Card>
       )}

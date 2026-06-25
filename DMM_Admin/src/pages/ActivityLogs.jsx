@@ -1,25 +1,33 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
-  Upload, FileImage, Send, CheckCircle2, XCircle, RefreshCw, UserPlus, UserCog, UserX, BarChart3, Activity,
+  Upload, FileImage, Send, CheckCircle2, XCircle, RefreshCw, UserPlus, UserCog, UserX, BarChart3, Activity, MessageSquare, ShoppingBag,
 } from 'lucide-react';
 import { activityApi } from '../api/endpoints.js';
 import PageHeader from '../components/layout/PageHeader.jsx';
 import { Card, Select, Avatar, Skeleton, EmptyState, Badge } from '../components/ui/primitives.jsx';
 import { formatDateTime } from '../lib/utils.js';
 
+// Plain-language label + verb so anyone (not just developers) can read the log.
+// Colour is kept minimal: green for positive, red for removals/changes, neutral otherwise.
+const TONES = {
+  good: 'text-emerald-600 bg-emerald-50 dark:bg-emerald-500/10',
+  bad: 'text-rose-600 bg-rose-50 dark:bg-rose-500/10',
+  neutral: 'text-slate-500 bg-slate-100 dark:bg-slate-800',
+};
 const META = {
-  TEMPLATE_UPLOAD: { icon: FileImage, label: 'Template Upload', cls: 'text-brand-600 bg-brand-50 dark:bg-brand-500/10' },
-  ASSET_UPLOAD: { icon: Upload, label: 'Asset Upload', cls: 'text-sky-600 bg-sky-50 dark:bg-sky-500/10' },
-  APPROVAL_SUBMISSION: { icon: Send, label: 'Approval Submitted', cls: 'text-violet-600 bg-violet-50 dark:bg-violet-500/10' },
-  APPROVAL_APPROVED: { icon: CheckCircle2, label: 'Approved', cls: 'text-emerald-600 bg-emerald-50 dark:bg-emerald-500/10' },
-  APPROVAL_REJECTED: { icon: XCircle, label: 'Rejected', cls: 'text-rose-600 bg-rose-50 dark:bg-rose-500/10' },
-  APPROVAL_RESUBMITTED: { icon: RefreshCw, label: 'Resubmitted', cls: 'text-amber-600 bg-amber-50 dark:bg-amber-500/10' },
-  POST_COMPLETION: { icon: CheckCircle2, label: 'Posted', cls: 'text-violet-600 bg-violet-50 dark:bg-violet-500/10' },
-  USER_CREATED: { icon: UserPlus, label: 'User Created', cls: 'text-emerald-600 bg-emerald-50 dark:bg-emerald-500/10' },
-  USER_UPDATED: { icon: UserCog, label: 'User Updated', cls: 'text-brand-600 bg-brand-50 dark:bg-brand-500/10' },
-  USER_DEACTIVATED: { icon: UserX, label: 'User Removed', cls: 'text-rose-600 bg-rose-50 dark:bg-rose-500/10' },
-  ANALYTICS_UPDATED: { icon: BarChart3, label: 'Analytics Updated', cls: 'text-sky-600 bg-sky-50 dark:bg-sky-500/10' },
+  TEMPLATE_UPLOAD: { icon: FileImage, label: 'Template added', verb: 'uploaded a template', tone: 'neutral' },
+  ASSET_UPLOAD: { icon: Upload, label: 'Asset added', verb: 'uploaded an asset', tone: 'neutral' },
+  APPROVAL_SUBMISSION: { icon: Send, label: 'Sent for approval', verb: 'sent content for approval', tone: 'neutral' },
+  APPROVAL_APPROVED: { icon: CheckCircle2, label: 'Approved', verb: 'approved content', tone: 'good' },
+  APPROVAL_REJECTED: { icon: MessageSquare, label: 'Changes requested', verb: 'requested changes', tone: 'bad' },
+  APPROVAL_RESUBMITTED: { icon: RefreshCw, label: 'Resubmitted', verb: 'resubmitted content', tone: 'neutral' },
+  POST_COMPLETION: { icon: CheckCircle2, label: 'Posted', verb: 'marked content as posted', tone: 'good' },
+  USER_CREATED: { icon: UserPlus, label: 'Member added', verb: 'added a team member', tone: 'good' },
+  USER_UPDATED: { icon: UserCog, label: 'Member updated', verb: 'updated a team member', tone: 'neutral' },
+  USER_DEACTIVATED: { icon: UserX, label: 'Member removed', verb: 'removed a team member', tone: 'bad' },
+  ANALYTICS_UPDATED: { icon: BarChart3, label: 'Analytics updated', verb: 'updated analytics', tone: 'neutral' },
+  COMPETITOR_UPDATED: { icon: BarChart3, label: 'Competitors updated', verb: 'updated competitors', tone: 'neutral' },
 };
 
 export default function ActivityLogs() {
@@ -47,17 +55,15 @@ export default function ActivityLogs() {
         <>
           <Card className="divide-y divide-slate-50 dark:divide-slate-800/50">
             {logs.map((log) => {
-              const m = META[log.action] || { icon: Activity, label: log.action, cls: 'text-slate-500 bg-slate-100 dark:bg-slate-800' };
+              const m = META[log.action] || { icon: Activity, label: 'Activity', verb: 'made an update', tone: 'neutral' };
               const Icon = m.icon;
               return (
                 <div key={log._id} className="flex items-center gap-4 p-4">
-                  <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${m.cls}`}><Icon className="h-5 w-5" /></div>
+                  <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${TONES[m.tone]}`}><Icon className="h-5 w-5" /></div>
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm text-slate-700 dark:text-slate-200">{log.description}</p>
-                    <div className="mt-0.5 flex items-center gap-2">
-                      <Avatar src={log.user?.avatar} name={log.user?.name} size="sm" className="!h-5 !w-5 !text-[9px]" />
-                      <span className="text-xs text-slate-400">{log.user?.name} · {formatDateTime(log.createdAt)}</span>
-                    </div>
+                    <p className="text-sm text-slate-700 dark:text-slate-200"><span className="font-semibold">{log.user?.name || 'Someone'}</span> {m.verb}</p>
+                    {log.description && <p className="truncate text-xs text-slate-400">{log.description}</p>}
+                    <span className="text-[11px] text-slate-400">{formatDateTime(log.createdAt)}</span>
                   </div>
                   <Badge className="hidden sm:inline-flex">{m.label}</Badge>
                 </div>
