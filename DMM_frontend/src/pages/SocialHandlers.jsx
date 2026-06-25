@@ -1,11 +1,16 @@
 import { useQuery } from '@tanstack/react-query';
+import { Navigate } from 'react-router-dom';
 import { Share2, Mail, Phone, Star, Users, ExternalLink } from 'lucide-react';
 import { libraryApi } from '../api/endpoints.js';
+import { useAuthStore } from '../store/authStore.js';
 import PageHeader from '../components/layout/PageHeader.jsx';
 import { Card, Skeleton, EmptyState } from '../components/ui/primitives.jsx';
 
 export default function SocialHandlers() {
-  const { data, isLoading } = useQuery({ queryKey: ['social-accounts'], queryFn: () => libraryApi.socialAccounts() });
+  const { user } = useAuthStore();
+  const blocked = user && user.role !== 'CEO';
+  const { data, isLoading } = useQuery({ queryKey: ['social-accounts'], queryFn: () => libraryApi.socialAccounts(), enabled: !blocked });
+  if (blocked) return <Navigate to="/dashboard" replace />;
   const accounts = data?.accounts || [];
 
   return (

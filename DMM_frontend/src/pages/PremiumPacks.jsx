@@ -1,6 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
+import { Navigate } from 'react-router-dom';
 import { ShoppingBag } from 'lucide-react';
 import { libraryApi } from '../api/endpoints.js';
+import { useAuthStore } from '../store/authStore.js';
 import PageHeader from '../components/layout/PageHeader.jsx';
 import { Card, Skeleton, EmptyState } from '../components/ui/primitives.jsx';
 import { formatDate } from '../lib/utils.js';
@@ -14,7 +16,10 @@ const expiryInfo = (d) => {
 };
 
 export default function PremiumPacks() {
-  const { data, isLoading } = useQuery({ queryKey: ['purchases'], queryFn: () => libraryApi.purchases() });
+  const { user } = useAuthStore();
+  const blocked = user && user.role !== 'CEO';
+  const { data, isLoading } = useQuery({ queryKey: ['purchases'], queryFn: () => libraryApi.purchases(), enabled: !blocked });
+  if (blocked) return <Navigate to="/dashboard" replace />;
   const purchases = data?.purchases || [];
 
   return (

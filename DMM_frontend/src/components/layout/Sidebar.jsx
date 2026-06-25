@@ -12,8 +12,9 @@ const MAIN_NAV = [
   { to: '/assets', label: 'Assets', icon: Images },
   { to: '/brand-library', label: 'Brand Library', icon: Palette },
   { to: '/approvals', label: 'Approvals', icon: CheckSquare },
-  { to: '/social-handlers', label: 'Social Handlers', icon: Share2 },
-  { to: '/premium-packs', label: 'Premium Packs', icon: ShoppingBag },
+  // Management info — only useful to the org head (CEO), hidden from regular users.
+  { to: '/social-handlers', label: 'Social Handlers', icon: Share2, roles: ['CEO'] },
+  { to: '/premium-packs', label: 'Premium Packs', icon: ShoppingBag, roles: ['CEO'] },
   { to: '/calendar', label: 'Calendar', icon: CalendarDays },
   { to: '/social-analytics', label: 'Social Analytics', icon: TrendingUp },
   { to: '/approval-analytics', label: 'Approval Analytics', icon: BarChart3 },
@@ -58,7 +59,7 @@ export default function Sidebar({ open, onClose }) {
         </div>
 
         <nav className="flex-1 space-y-1 overflow-y-auto px-4 py-4">
-          {MAIN_NAV.map(({ to, label, icon: Icon }) => (
+          {MAIN_NAV.filter((i) => !i.roles || i.roles.includes(user?.role)).map(({ to, label, icon: Icon }) => (
             <NavLink key={to} to={to} onClick={onClose} className={linkClass}>
               <Icon className="h-[18px] w-[18px]" />
               {label}

@@ -11,7 +11,7 @@ import { ROLES } from '../config/constants.js';
 const router = express.Router();
 router.use(protect);
 
-router.get('/', listPurchases);                                 // org members can view
+router.get('/', authorize(ROLES.ADMIN, ROLES.CEO), listPurchases); // CEO + Admin only
 router.post('/', authorize(ROLES.ADMIN), createPurchase);       // admin manages
 router.put('/:id', authorize(ROLES.ADMIN), updatePurchase);
 router.delete('/:id', authorize(ROLES.ADMIN), deletePurchase);
