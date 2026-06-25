@@ -3,7 +3,7 @@ import {
   LayoutDashboard, FileImage, Images, CheckSquare, BarChart3, CalendarDays,
   FileText, Bell, Settings, X, TrendingUp, Palette, Share2, ShoppingBag,
 } from 'lucide-react';
-import { cn, initials } from '../../lib/utils.js';
+import { cn } from '../../lib/utils.js';
 import { useAuthStore } from '../../store/authStore.js';
 
 const MAIN_NAV = [
@@ -44,8 +44,9 @@ export default function Sidebar({ open, onClose }) {
             {org?.logo ? (
               <img src={org.logo} alt={org.name} className="h-9 w-9 shrink-0 rounded-xl object-cover" />
             ) : (
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl shadow-glow" style={{ background: org?.color ? `linear-gradient(135deg, ${org.color}, ${org.color}cc)` : undefined }}>
-                <span className="text-sm font-extrabold text-white">{org?.name ? initials(org.name) : 'DMM'}</span>
+              // No org logo uploaded yet — fall back to the Tag logo.
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white ring-1 ring-slate-200 dark:ring-slate-700">
+                <img src="/logo.jpeg" alt="Tag" className="h-full w-full object-contain p-0.5" />
               </div>
             )}
             <div className="min-w-0">
