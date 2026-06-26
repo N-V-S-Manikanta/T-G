@@ -110,31 +110,39 @@ function OrgAnalytics({ orgId }) {
   );
 }
 
+const todayStr = () => new Date().toISOString().slice(0, 10);
+
 function MetricEntry({ orgId, platform, report }) {
   const qc = useQueryClient();
   const groups = report?.groups || {};
   const labels = report?.labels || {};
   const pct = new Set(report?.percentFields || []);
-  const latest = report?.latest;
+  const series = report?.series || [];
+  const allFields = Object.values(groups).flat();
+  const [date, setDate] = useState(todayStr());
   const [values, setValues] = useState({});
 
+  // Pre-fill the form with whatever is already stored for the chosen date
+  // (including values imported from Excel), so editing one date never wipes
+  // the rest. A date with no data starts blank.
   useEffect(() => {
+    const existing = series.find((s) => String(s.date).slice(0, 10) === date);
     const init = {};
-    Object.values(groups).flat().forEach((f) => { init[f] = latest?.[f] ?? ''; });
+    allFields.forEach((f) => { init[f] = existing && existing[f] != null ? existing[f] : ''; });
     setValues(init);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [latest, platform]);
+  }, [date, platform, report?.latest]);
 
   const saveMut = useMutation({
-    mutationFn: () => analyticsApi.record({ platform, organization: orgId, ...values }),
-    onSuccess: () => { toast.success(`${platform} metrics saved`); qc.invalidateQueries({ queryKey: ['report', orgId, platform] }); },
+    mutationFn: () => analyticsApi.record({ platform, organization: orgId, date, ...values }),
+    onSuccess: () => { toast.success(`${platform} metrics saved for ${date}`); qc.invalidateQueries({ queryKey: ['report', orgId, platform] }); },
     onError: (e) => toast.error(e.response?.data?.message || 'Save failed'),
   });
   const clearMut = useMutation({
     mutationFn: () => analyticsApi.clear(platform, orgId),
     onSuccess: (res) => {
       toast.success(`Cleared ${platform} metrics${res.deleted ? ` (${res.deleted} entries)` : ''}`);
-      const blank = {}; Object.values(groups).flat().forEach((f) => { blank[f] = ''; }); setValues(blank);
+      const blank = {}; allFields.forEach((f) => { blank[f] = ''; }); setValues(blank);
       qc.invalidateQueries({ queryKey: ['report', orgId, platform] });
     },
     onError: (e) => toast.error(e.response?.data?.message || 'Clear failed'),
@@ -142,11 +150,18 @@ function MetricEntry({ orgId, platform, report }) {
   const clearMetrics = () => {
     if (window.confirm(`Clear ALL stored ${platform} metrics for this organization? This deletes every saved/imported entry so you can start fresh. This cannot be undone.`)) clearMut.mutate();
   };
+  const editingExisting = series.some((s) => String(s.date).slice(0, 10) === date);
 
   return (
     <form onSubmit={(e) => { e.preventDefault(); saveMut.mutate(); }} className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-slate-400">Enter this week's {platform} numbers. Each save is stored as a dated snapshot, so week-over-week change is tracked automatically.</p>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div className="max-w-lg">
+          <label className="mb-1 block text-sm font-medium text-slate-600 dark:text-slate-300">Date these numbers are for</label>
+          <input type="date" value={date} max={todayStr()} onChange={(e) => setDate(e.target.value)} className="input-base h-10 w-48" />
+          <p className="mt-1.5 text-xs text-slate-400">
+            Pick the day the metrics belong to — for a weekly total, use the last day of that week. Saving updates only this date and keeps anything already imported for it. {editingExisting ? 'This date already has data, so the fields below are pre-filled.' : 'This date has no data yet — fields start blank.'}
+          </p>
+        </div>
         {report?.hasData && (
           <Button type="button" variant="outline" loading={clearMut.isPending} onClick={clearMetrics}
             className="border-rose-200 text-rose-600 hover:bg-rose-50 dark:border-rose-500/30 dark:text-rose-400 dark:hover:bg-rose-500/10">
@@ -165,7 +180,7 @@ function MetricEntry({ orgId, platform, report }) {
           </div>
         </Card>
       ))}
-      <Button type="submit" loading={saveMut.isPending}><Save className="h-4 w-4" /> Save {platform} metrics</Button>
+      <Button type="submit" loading={saveMut.isPending}><Save className="h-4 w-4" /> Save {platform} metrics for {date}</Button>
     </form>
   );
 }

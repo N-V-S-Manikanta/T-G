@@ -217,21 +217,33 @@ export const compareOrganizations = asyncHandler(async (req, res) => {
   res.json({ success: true, platform, metric, label: FIELD_LABELS[metric], organizations: rows });
 });
 
-// @route POST /api/analytics  (ADMIN/CEO) — record a new metrics snapshot for a platform
+// @route POST /api/analytics  (ADMIN/CEO) — save metrics for a specific date.
+// Upserts by day so manual entry merges with imported data: only the fields the
+// user actually filled are written, leaving everything else for that date intact.
 export const recordAnalytics = asyncHandler(async (req, res) => {
   const orgId = requireOrgId(req, res);
   const { platform } = req.body;
   if (!PLATFORMS.includes(platform)) { res.status(400); throw new Error('Invalid platform'); }
 
-  const allowed = flatFields(platform);
-  const doc = { organization: orgId, platform, date: new Date() };
-  for (const field of allowed) {
-    const val = Number(req.body[field]);
-    doc[field] = Number.isFinite(val) && val >= 0 ? val : 0;
-  }
-  const snapshot = await Analytics.create(doc);
+  // The date the metrics apply to (default today), normalized to UTC midnight so
+  // it lines up with imported daily snapshots.
+  const parsed = req.body.date ? new Date(req.body.date) : new Date();
+  if (isNaN(parsed)) { res.status(400); throw new Error('Invalid date'); }
+  const day = new Date(Date.UTC(parsed.getUTCFullYear(), parsed.getUTCMonth(), parsed.getUTCDate()));
+  const dayEnd = new Date(day.getTime() + 24 * 60 * 60 * 1000);
 
-  logActivity({ user: req.user._id, organization: orgId, action: ACTIVITY_ACTIONS.ANALYTICS_UPDATED, description: `Updated ${platform} analytics`, entityType: 'Analytics', entityId: snapshot._id });
+  const allowed = flatFields(platform);
+  let snapshot = await Analytics.findOne({ organization: orgId, platform, date: { $gte: day, $lt: dayEnd } });
+  if (!snapshot) snapshot = new Analytics({ organization: orgId, platform, date: day });
+  for (const field of allowed) {
+    const raw = req.body[field];
+    if (raw === undefined || raw === '' || raw === null) continue; // leave existing/blank untouched
+    const val = Number(raw);
+    snapshot[field] = Number.isFinite(val) && val >= 0 ? val : 0;
+  }
+  await snapshot.save();
+
+  logActivity({ user: req.user._id, organization: orgId, action: ACTIVITY_ACTIONS.ANALYTICS_UPDATED, description: `Updated ${platform} analytics for ${day.toISOString().slice(0, 10)}`, entityType: 'Analytics', entityId: snapshot._id });
   res.status(201).json({ success: true, snapshot });
 });
 
