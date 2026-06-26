@@ -14,8 +14,8 @@ import { formatDate, roleLabel, roleStyle } from '../lib/utils.js';
 
 // Filter options (label → internal role value). Super Admin is seed-only.
 const ROLE_FILTERS = [{ value: 'ADMIN', label: 'Super Admin' }, { value: 'CEO', label: 'Admin' }, { value: 'USER', label: 'User' }];
-// Roles the super admin can assign when creating/editing (not Super Admin).
-const CREATE_ROLES = [{ value: 'CEO', label: 'Admin' }, { value: 'USER', label: 'User' }];
+// Roles the super admin can assign. 'SUPER' is a UI value → role ADMIN + isSuperAdmin.
+const CREATE_ROLES = [{ value: 'SUPER', label: 'Super Admin (all organizations)' }, { value: 'CEO', label: 'Admin' }, { value: 'USER', label: 'User' }];
 const roleIcon = (u) => (u?.isSuperAdmin ? ShieldCheck : u?.role === 'USER' ? UserIcon : Crown);
 
 export default function Users() {
@@ -182,13 +182,14 @@ const MenuItem = ({ icon: Icon, label, onClick, danger }) => (
 function UserFormModal({ editUser, onClose, onSaved }) {
   const [form, setForm] = useState({
     name: editUser?.name || '', email: editUser?.email || '', password: '',
-    role: editUser?.role || 'USER', jobTitle: editUser?.jobTitle || '',
+    role: editUser?.isSuperAdmin ? 'SUPER' : (editUser?.role || 'USER'), jobTitle: editUser?.jobTitle || '',
     skills: (editUser?.skills || []).join(', '),
     organization: editUser?.organization?._id || editUser?.organization || '',
   });
   const [loading, setLoading] = useState(false);
   const { data: orgData } = useQuery({ queryKey: ['organizations', 'all'], queryFn: () => organizationApi.list() });
   const orgs = orgData?.organizations || [];
+  const isSuper = form.role === 'SUPER';
   const needsOrg = form.role === 'CEO' || form.role === 'USER';
 
   const submit = async (e) => {
@@ -197,7 +198,8 @@ function UserFormModal({ editUser, onClose, onSaved }) {
     setLoading(true);
     try {
       const payload = {
-        name: form.name, role: form.role, jobTitle: form.jobTitle, skills: form.skills,
+        name: form.name, role: isSuper ? 'ADMIN' : form.role, isSuperAdmin: isSuper,
+        jobTitle: form.jobTitle, skills: form.skills,
         organization: needsOrg ? form.organization : null,
       };
       if (editUser) { await userApi.update(editUser._id, payload); toast.success('User updated'); }

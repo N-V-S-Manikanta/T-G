@@ -48,7 +48,7 @@ export const getUsers = asyncHandler(async (req, res) => {
 
 // @route POST /api/users  (ADMIN) — create a new user
 export const createUser = asyncHandler(async (req, res) => {
-  const { name, email, password, role, jobTitle, organization, skills } = req.body;
+  const { name, email, password, role, jobTitle, organization, skills, isSuperAdmin } = req.body;
   if (!name || !email || !password) {
     res.status(400);
     throw new Error('Name, email and password are required');
@@ -57,15 +57,19 @@ export const createUser = asyncHandler(async (req, res) => {
     res.status(400);
     throw new Error('Password must be at least 6 characters');
   }
-  const finalRole = role || ROLES.USER;
+  // A super admin is a global ADMIN with the flag set and no organization. Only
+  // an existing super admin reaches this route (requireSuperAdmin), so granting
+  // it here is safe.
+  const wantSuper = isSuperAdmin === true || isSuperAdmin === 'true';
+  const finalRole = wantSuper ? ROLES.ADMIN : (role || ROLES.USER);
   if (!Object.values(ROLES).includes(finalRole)) {
     res.status(400);
     throw new Error('Invalid role');
   }
-  // CEO/USER must be assigned to a valid, active organization.
+  // CEO/USER must be assigned to a valid, active organization (super admins are global).
   let orgId = null;
-  if (roleNeedsOrg(finalRole)) {
-    if (!organization) { res.status(400); throw new Error('An organization is required for CEO and User accounts'); }
+  if (!wantSuper && roleNeedsOrg(finalRole)) {
+    if (!organization) { res.status(400); throw new Error('An organization is required for Admin and User accounts'); }
     const org = await Organization.findById(organization);
     if (!org) { res.status(400); throw new Error('Selected organization does not exist'); }
     orgId = org._id;
@@ -75,7 +79,7 @@ export const createUser = asyncHandler(async (req, res) => {
     res.status(400);
     throw new Error('A user with this email already exists');
   }
-  const user = await User.create({ name, email, password, role: finalRole, jobTitle: jobTitle || '', skills: parseSkills(skills), organization: orgId });
+  const user = await User.create({ name, email, password, role: finalRole, isSuperAdmin: wantSuper, jobTitle: jobTitle || '', skills: parseSkills(skills), organization: orgId });
 
   logActivity({ user: req.user._id, organization: orgId, action: ACTIVITY_ACTIONS.USER_CREATED, description: `Created user "${name}" (${user.role})`, entityType: 'User', entityId: user._id });
 
@@ -105,12 +109,19 @@ export const updateUser = asyncHandler(async (req, res) => {
   const user = await User.findById(req.params.id);
   if (!user) { res.status(404); throw new Error('User not found'); }
 
-  const { name, role, jobTitle, isActive, organization, skills } = req.body;
+  const { name, role, jobTitle, isActive, organization, skills, isSuperAdmin } = req.body;
+  const wantSuper = isSuperAdmin === true || isSuperAdmin === 'true';
 
-  // The super admin is fixed: its role can't be changed and it can't be deactivated.
+  // A super admin can't be deactivated. Its role can't be changed unless it's
+  // being demoted out of super admin (handled below).
   if (user.isSuperAdmin) {
-    if (role && role !== ROLES.ADMIN) { res.status(400); throw new Error('The super admin role cannot be changed'); }
-    if (isActive === false) { res.status(400); throw new Error('The super admin cannot be deactivated'); }
+    if (isActive === false) { res.status(400); throw new Error('A super admin cannot be deactivated'); }
+    if (role && role !== ROLES.ADMIN && isSuperAdmin === undefined) { res.status(400); throw new Error('A super admin role cannot be changed'); }
+  }
+  // Always keep at least one super admin.
+  if (user.isSuperAdmin && isSuperAdmin !== undefined && !wantSuper) {
+    const others = await User.countDocuments({ isSuperAdmin: true, _id: { $ne: user._id } });
+    if (others === 0) { res.status(400); throw new Error('At least one super admin must remain'); }
   }
 
   // Guard: don't allow removing the last active admin or self-demotion lockout
@@ -140,6 +151,12 @@ export const updateUser = asyncHandler(async (req, res) => {
     user.organization = null; // ADMIN is global
   }
   user.role = nextRole;
+
+  // Promote/demote super admin (global, no organization).
+  if (isSuperAdmin !== undefined) {
+    user.isSuperAdmin = wantSuper;
+    if (wantSuper) { user.role = ROLES.ADMIN; user.organization = null; }
+  }
   await user.save();
 
   const action = isActive === false ? ACTIVITY_ACTIONS.USER_DEACTIVATED : ACTIVITY_ACTIONS.USER_UPDATED;
