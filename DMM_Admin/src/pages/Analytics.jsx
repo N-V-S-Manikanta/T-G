@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
-import { Linkedin, Instagram, Youtube, Facebook, Save, BarChart3, PenLine, Trophy, Users } from 'lucide-react';
+import { Linkedin, Instagram, Youtube, Facebook, Save, BarChart3, PenLine, Trophy, Users, Upload, Download, FileSpreadsheet } from 'lucide-react';
 import { analyticsApi } from '../api/endpoints.js';
+import { downloadBlob } from '../lib/utils.js';
 import PageHeader from '../components/layout/PageHeader.jsx';
 import OrgPicker from '../components/OrgPicker.jsx';
 import AnalyticsReport from '../components/AnalyticsReport.jsx';
@@ -40,8 +41,10 @@ const TabBtn = ({ active, onClick, icon: Icon, children }) => (
 );
 
 function OrgAnalytics({ orgId }) {
+  const qc = useQueryClient();
   const [platform, setPlatform] = useState('LinkedIn');
   const [mode, setMode] = useState('report');
+  const fileRef = useRef(null);
   const { data: report, isLoading } = useQuery({ queryKey: ['report', orgId, platform], queryFn: () => analyticsApi.report(platform, orgId) });
 
   // Competitor tracking is only offered for LinkedIn — fall back to the report
@@ -52,8 +55,23 @@ function OrgAnalytics({ orgId }) {
     if (key !== 'LinkedIn' && mode === 'competitors') setMode('report');
   };
 
+  const importMut = useMutation({
+    mutationFn: (file) => { const fd = new FormData(); fd.append('platform', platform); fd.append('organization', orgId); fd.append('file', file); return analyticsApi.import(fd); },
+    onSuccess: (res) => {
+      toast.success(`Imported ${res.days} days of ${platform} (${res.from} → ${res.to})`);
+      qc.invalidateQueries({ queryKey: ['report', orgId, platform] });
+    },
+    onError: (e) => toast.error(e.response?.data?.message || 'Import failed'),
+  });
+  const onPickFile = (e) => { const f = e.target.files?.[0]; e.target.value = ''; if (f) importMut.mutate(f); };
+  const downloadTemplate = async () => {
+    try { downloadBlob(await analyticsApi.template(), 'analytics-template.xlsx'); }
+    catch { toast.error('Could not download template'); }
+  };
+
   return (
     <div className="space-y-5">
+      <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={onPickFile} />
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap gap-2">
           {PLATFORMS.map(({ key, icon: Icon, color }) => (
@@ -65,11 +83,24 @@ function OrgAnalytics({ orgId }) {
             </button>
           ))}
         </div>
-        <div className="inline-flex rounded-xl bg-slate-100 dark:bg-slate-800 p-1">
-          <TabBtn active={mode === 'report'} onClick={() => setMode('report')} icon={BarChart3}>Report</TabBtn>
-          <TabBtn active={mode === 'enter'} onClick={() => setMode('enter')} icon={PenLine}>Enter metrics</TabBtn>
-          {showCompetitors && <TabBtn active={mode === 'competitors'} onClick={() => setMode('competitors')} icon={Users}>Competitors</TabBtn>}
+        <div className="flex flex-wrap items-center gap-2">
+          <Button size="sm" variant="outline" onClick={downloadTemplate}><Download className="h-4 w-4" /> Template</Button>
+          <Button size="sm" variant="outline" onClick={() => fileRef.current?.click()} loading={importMut.isPending}><Upload className="h-4 w-4" /> Import Excel</Button>
+          <div className="inline-flex rounded-xl bg-slate-100 dark:bg-slate-800 p-1">
+            <TabBtn active={mode === 'report'} onClick={() => setMode('report')} icon={BarChart3}>Report</TabBtn>
+            <TabBtn active={mode === 'enter'} onClick={() => setMode('enter')} icon={PenLine}>Enter metrics</TabBtn>
+            {showCompetitors && <TabBtn active={mode === 'competitors'} onClick={() => setMode('competitors')} icon={Users}>Competitors</TabBtn>}
+          </div>
         </div>
+      </div>
+
+      <div className="flex items-start gap-2.5 rounded-xl border border-slate-200/70 bg-slate-50 px-4 py-3 text-xs text-slate-500 dark:border-slate-800 dark:bg-slate-800/40 dark:text-slate-400">
+        <FileSpreadsheet className="mt-0.5 h-4 w-4 shrink-0 text-brand-500" />
+        <span>
+          <span className="font-semibold text-slate-600 dark:text-slate-300">Weekly Excel import:</span> download your {platform} export
+          (Impressions, Clicks, Reactions, Comments, Reposts, Engagement rate, Followers…) and drop it here. Columns and dates are
+          detected automatically, each day is stored as a snapshot, and re-uploading the same dates updates them — your past data is never removed.
+        </span>
       </div>
 
       {mode === 'report' && <AnalyticsReport report={report} isLoading={isLoading} />}

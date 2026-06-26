@@ -5,16 +5,21 @@ import {
   getPlatformHistory,
   compareOrganizations,
   recordAnalytics,
+  importAnalytics,
+  analyticsTemplate,
 } from '../controllers/analyticsController.js';
 import { protect, authorize } from '../middleware/auth.js';
+import upload from '../middleware/upload.js';
 import { ROLES } from '../config/constants.js';
 
 const router = express.Router();
 router.use(protect);
 
 router.get('/', getAnalytics);
+router.get('/template', analyticsTemplate); // before /:platform
 router.get('/compare', authorize(ROLES.ADMIN), compareOrganizations); // before /:platform
 router.post('/', authorize(ROLES.ADMIN, ROLES.CEO), recordAnalytics);
+router.post('/import', authorize(ROLES.ADMIN, ROLES.CEO), upload.single('file'), importAnalytics);
 router.get('/:platform/report', getPlatformReport);
 router.get('/:platform/history', getPlatformHistory);
 
