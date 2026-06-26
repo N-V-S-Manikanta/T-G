@@ -1,7 +1,7 @@
-import { useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
-import { Share2, Plus, Pencil, Trash2, Mail, Phone, Star, Users, ExternalLink, X, Upload, Download, FileSpreadsheet } from 'lucide-react';
+import { Share2, Plus, Pencil, Trash2, Mail, Phone, Users, ExternalLink, X, Upload, Download, FileSpreadsheet, Linkedin, Instagram, Youtube, Facebook, Twitter, Building2 } from 'lucide-react';
 import { socialAccountApi, organizationApi } from '../api/endpoints.js';
 import { downloadBlob } from '../lib/utils.js';
 import PageHeader from '../components/layout/PageHeader.jsx';
@@ -10,8 +10,30 @@ import { Card, Input, Select, Skeleton, EmptyState } from '../components/ui/prim
 import { Modal } from '../components/ui/Modal.jsx';
 
 const PLATFORMS = ['LinkedIn', 'Instagram', 'YouTube', 'Facebook', 'X (Twitter)'];
+const PLATFORM_ORDER = Object.fromEntries(PLATFORMS.map((p, i) => [p, i]));
+
+// Each platform gets its real brand colour + icon so the rows are instantly
+// recognisable at a glance.
+const PLATFORM_META = {
+  LinkedIn: { icon: Linkedin, color: '#0A66C2' },
+  Instagram: { icon: Instagram, color: '#E4405F' },
+  YouTube: { icon: Youtube, color: '#FF0000' },
+  Facebook: { icon: Facebook, color: '#1877F2' },
+  'X (Twitter)': { icon: Twitter, color: '#0f172a' },
+};
+
+// Admin roles are colour-coded so Super Admins, Content Admins and Portfolio
+// Admins are easy to tell apart.
+const roleBadge = (role = '') => {
+  const r = role.toLowerCase();
+  if (r.includes('super')) return 'bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300';
+  if (r.includes('content')) return 'bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300';
+  if (r.includes('portfolio')) return 'bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300';
+  return 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300';
+};
+
 const blankHandler = { name: '', email: '', phone: '', role: '' };
-const blank = { platform: 'LinkedIn', organization: '', accountName: '', profileUrl: '', ownerName: '', ownerEmail: '', linkedEmails: '', rating: 0, accessCount: 0, notes: '', handlers: [{ ...blankHandler }] };
+const blank = { platform: 'LinkedIn', organization: '', accountName: '', profileUrl: '', ownerName: '', ownerEmail: '', linkedEmails: '', accessCount: 0, notes: '', handlers: [{ ...blankHandler }] };
 
 export default function SocialAccounts() {
   const qc = useQueryClient();
@@ -26,6 +48,20 @@ export default function SocialAccounts() {
   if (filters.organizationId === 'all') params.scope = 'all'; else params.organizationId = filters.organizationId;
   const { data, isLoading } = useQuery({ queryKey: ['social-accounts', filters], queryFn: () => socialAccountApi.list(params) });
   const accounts = data?.accounts || [];
+
+  // Group accounts by organization, platforms in canonical order.
+  const groups = useMemo(() => {
+    const map = new Map();
+    for (const a of accounts) {
+      const key = a.organization?._id || 'unlinked';
+      if (!map.has(key)) map.set(key, { org: a.organization, items: [] });
+      map.get(key).items.push(a);
+    }
+    const arr = [...map.values()];
+    arr.sort((x, y) => (x.org?.name || 'zzz').localeCompare(y.org?.name || 'zzz'));
+    arr.forEach((g) => g.items.sort((a, b) => (PLATFORM_ORDER[a.platform] ?? 9) - (PLATFORM_ORDER[b.platform] ?? 9)));
+    return arr;
+  }, [accounts]);
 
   const removeMut = useMutation({
     mutationFn: (id) => socialAccountApi.remove(id),
@@ -53,7 +89,7 @@ export default function SocialAccounts() {
   return (
     <div>
       <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={onPickFile} />
-      <PageHeader title="Social Media Handlers" subtitle="Who handles each platform per organization — owners, linked emails, coordinators and their contact details."
+      <PageHeader title="Social Media Handlers" subtitle="Who runs each platform, per organization — and exactly what access they have."
         actions={
           <div className="flex flex-wrap items-center gap-2">
             <Button variant="outline" onClick={downloadTemplate}><Download className="h-4 w-4" /> Template</Button>
@@ -62,15 +98,13 @@ export default function SocialAccounts() {
           </div>
         } />
 
-      <div className="mb-5 flex items-start gap-2.5 rounded-xl border border-slate-200/70 bg-slate-50 px-4 py-3 text-xs text-slate-500 dark:border-slate-800 dark:bg-slate-800/40 dark:text-slate-400">
-        <FileSpreadsheet className="mt-0.5 h-4 w-4 shrink-0 text-brand-500" />
-        <span>
-          <span className="font-semibold text-slate-600 dark:text-slate-300">Excel import:</span> upload your sheet with
-          columns like <em>College</em>, <em>Platform</em>, <em>Admin Name</em>, <em>Admin Type</em> and <em>Note</em>.
-          The link behind each platform becomes the profile URL, admins become handlers, and a row with a blank platform
-          adds more admins to the row above. Each college is matched to an organization (created if new). Re-importing updates
-          existing accounts instead of duplicating.
-        </span>
+      {/* Role legend — so the colour coding is self-explanatory */}
+      <div className="mb-5 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-slate-500 dark:text-slate-400">
+        <span className="font-semibold uppercase tracking-wide text-slate-400">Admin roles:</span>
+        <Legend className={roleBadge('super')}>Super Admin — full control</Legend>
+        <Legend className={roleBadge('content')}>Content Admin — posts content</Legend>
+        <Legend className={roleBadge('portfolio')}>Portfolio Admin — via business portfolio</Legend>
+        <Legend className={roleBadge('')}>Other</Legend>
       </div>
 
       <div className="mb-5 grid gap-3 sm:grid-cols-3">
@@ -86,60 +120,27 @@ export default function SocialAccounts() {
       </div>
 
       {isLoading ? (
-        <div className="grid gap-4 lg:grid-cols-2">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-56" />)}</div>
+        <div className="space-y-4">{Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-40" />)}</div>
       ) : accounts.length === 0 ? (
-        <EmptyState icon={Share2} title="No accounts yet" description="Add a social media account and its handlers."
+        <EmptyState icon={Share2} title="No accounts yet" description="Import your social handlers spreadsheet or add an account manually."
           action={<Button onClick={() => setModal({ type: 'create' })}><Plus className="h-4 w-4" /> Add account</Button>} />
       ) : (
-        <div className="grid gap-4 lg:grid-cols-2">
-          {accounts.map((a) => (
-            <Card key={a._id} className="p-5">
-              <div className="mb-3 flex items-start justify-between">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-bold text-slate-800 dark:text-white">{a.platform}</span>
-                    {a.accountName && <span className="text-sm text-slate-500">· {a.accountName}</span>}
-                  </div>
-                  <p className="mt-0.5 inline-flex items-center gap-1.5 text-xs text-slate-400">
-                    <span className="h-2 w-2 rounded-full" style={{ background: a.organization?.color || '#7c3aed' }} />
-                    {a.organization?.name || '—'}
-                  </p>
-                </div>
-                <div className="flex gap-1">
-                  <button onClick={() => setModal({ type: 'edit', item: a })} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-brand-600 dark:hover:bg-slate-800"><Pencil className="h-4 w-4" /></button>
-                  <button onClick={() => window.confirm('Remove this account?') && removeMut.mutate(a._id)} className="rounded-lg p-1.5 text-slate-400 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-500/10"><Trash2 className="h-4 w-4" /></button>
-                </div>
+        <div className="space-y-6">
+          {groups.map((g) => (
+            <section key={g.org?._id || 'unlinked'}>
+              {/* Organization header */}
+              <div className="mb-3 flex items-center gap-2.5">
+                <span className="flex h-7 w-7 items-center justify-center rounded-lg text-white" style={{ background: g.org?.color || '#64748b' }}>
+                  <Building2 className="h-4 w-4" />
+                </span>
+                <h2 className="text-base font-bold text-slate-800 dark:text-white">{g.org?.name || 'Unlinked'}</h2>
+                <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-500 dark:bg-slate-800 dark:text-slate-400">{g.items.length} {g.items.length === 1 ? 'platform' : 'platforms'}</span>
               </div>
 
-              <div className="grid grid-cols-2 gap-2 text-sm">
-                {a.ownerName && <Info label="Owner" value={a.ownerName} />}
-                {a.ownerEmail && <Info label="Owner email" value={a.ownerEmail} />}
-                <Info label="Rating" value={<span className="inline-flex items-center gap-1">{a.rating || 0}<Star className="h-3.5 w-3.5 text-amber-500" /></span>} />
-                <Info label="People with access" value={<span className="inline-flex items-center gap-1"><Users className="h-3.5 w-3.5" />{a.accessCount || 0}</span>} />
+              <div className="grid gap-3 xl:grid-cols-2">
+                {g.items.map((a) => <PlatformCard key={a._id} a={a} onEdit={() => setModal({ type: 'edit', item: a })} onRemove={() => window.confirm('Remove this account?') && removeMut.mutate(a._id)} />)}
               </div>
-
-              {a.profileUrl && (
-                <a href={a.profileUrl} target="_blank" rel="noreferrer" className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-brand-600 hover:underline"><ExternalLink className="h-3.5 w-3.5" /> {a.profileUrl}</a>
-              )}
-              {a.linkedEmails?.length > 0 && (
-                <p className="mt-2 text-xs text-slate-400">Linked emails: <span className="text-slate-600 dark:text-slate-300">{a.linkedEmails.join(', ')}</span></p>
-              )}
-
-              {a.handlers?.length > 0 && (
-                <div className="mt-3 border-t border-slate-100 pt-3 dark:border-slate-800">
-                  <p className="mb-2 text-xs font-semibold uppercase text-slate-400">Handlers</p>
-                  <div className="space-y-1.5">
-                    {a.handlers.map((h, i) => (
-                      <div key={i} className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-sm">
-                        <span className="font-medium text-slate-700 dark:text-slate-200">{h.name}{h.role ? ` · ${h.role}` : ''}</span>
-                        {h.email && <a href={`mailto:${h.email}`} className="inline-flex items-center gap-1 text-xs text-slate-500 hover:text-brand-600"><Mail className="h-3 w-3" />{h.email}</a>}
-                        {h.phone && <a href={`tel:${h.phone}`} className="inline-flex items-center gap-1 text-xs text-slate-500 hover:text-brand-600"><Phone className="h-3 w-3" />{h.phone}</a>}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </Card>
+            </section>
           ))}
         </div>
       )}
@@ -149,9 +150,93 @@ export default function SocialAccounts() {
   );
 }
 
-const Info = ({ label, value }) => (
-  <div><p className="text-xs text-slate-400">{label}</p><p className="font-medium text-slate-700 dark:text-slate-200">{value}</p></div>
+const Legend = ({ className, children }) => (
+  <span className="inline-flex items-center gap-1.5">
+    <span className={`h-2.5 w-2.5 rounded-full ${className}`} />
+    {children}
+  </span>
 );
+
+function PlatformCard({ a, onEdit, onRemove }) {
+  const meta = PLATFORM_META[a.platform] || { icon: Share2, color: '#64748b' };
+  const Icon = meta.icon;
+
+  // Group handlers by role so the differentiation is obvious.
+  const byRole = useMemo(() => {
+    const m = new Map();
+    for (const h of a.handlers || []) {
+      const key = h.role || 'Other';
+      if (!m.has(key)) m.set(key, []);
+      m.get(key).push(h);
+    }
+    // Super Admins first, then Content, then the rest.
+    return [...m.entries()].sort(([x], [y]) => roleRank(x) - roleRank(y));
+  }, [a.handlers]);
+
+  return (
+    <Card className="overflow-hidden">
+      {/* Platform header strip */}
+      <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-4 py-3 dark:border-slate-800">
+        <div className="flex min-w-0 items-center gap-2.5">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-white" style={{ background: meta.color }}>
+            <Icon className="h-5 w-5" />
+          </span>
+          <div className="min-w-0">
+            <p className="font-bold text-slate-800 dark:text-white">{a.platform}</p>
+            {a.profileUrl ? (
+              <a href={a.profileUrl} target="_blank" rel="noreferrer" className="flex items-center gap-1 truncate text-xs text-brand-600 hover:underline dark:text-brand-400">
+                <ExternalLink className="h-3 w-3 shrink-0" /> <span className="truncate">{a.profileUrl.replace(/^https?:\/\//, '')}</span>
+              </a>
+            ) : (
+              <p className="text-xs text-slate-400">No profile link</p>
+            )}
+          </div>
+        </div>
+        <div className="flex shrink-0 gap-1">
+          <button onClick={onEdit} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-brand-600 dark:hover:bg-slate-800" title="Edit"><Pencil className="h-4 w-4" /></button>
+          <button onClick={onRemove} className="rounded-lg p-1.5 text-slate-400 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-500/10" title="Remove"><Trash2 className="h-4 w-4" /></button>
+        </div>
+      </div>
+
+      {/* Handlers grouped by role */}
+      <div className="space-y-2.5 px-4 py-3">
+        {byRole.length === 0 ? (
+          <p className="text-sm text-slate-400">No admins assigned yet.</p>
+        ) : (
+          byRole.map(([role, people]) => (
+            <div key={role} className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
+              <span className={`rounded-md px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide ${roleBadge(role)}`}>{role}</span>
+              {people.map((h, i) => (
+                <span key={i} className="inline-flex items-center gap-1.5 rounded-lg bg-slate-50 px-2 py-1 text-sm text-slate-700 dark:bg-slate-800/60 dark:text-slate-200">
+                  {h.name}
+                  {h.email && <a href={`mailto:${h.email}`} title={h.email} className="text-slate-400 hover:text-brand-600"><Mail className="h-3.5 w-3.5" /></a>}
+                  {h.phone && <a href={`tel:${h.phone}`} title={h.phone} className="text-slate-400 hover:text-brand-600"><Phone className="h-3.5 w-3.5" /></a>}
+                </span>
+              ))}
+            </div>
+          ))
+        )}
+
+        {/* Secondary details */}
+        {(a.linkedEmails?.length > 0 || a.accessCount > 0 || a.notes) && (
+          <div className="space-y-1 border-t border-slate-100 pt-2.5 text-xs text-slate-500 dark:border-slate-800 dark:text-slate-400">
+            {a.linkedEmails?.length > 0 && <p><span className="font-semibold text-slate-600 dark:text-slate-300">Linked emails:</span> {a.linkedEmails.join(', ')}</p>}
+            {a.accessCount > 0 && <p className="inline-flex items-center gap-1"><Users className="h-3.5 w-3.5" /> {a.accessCount} people with access</p>}
+            {a.notes && <p><span className="font-semibold text-slate-600 dark:text-slate-300">Note:</span> {a.notes}</p>}
+          </div>
+        )}
+      </div>
+    </Card>
+  );
+}
+
+const roleRank = (role = '') => {
+  const r = role.toLowerCase();
+  if (r.includes('super')) return 0;
+  if (r.includes('content')) return 1;
+  if (r.includes('portfolio')) return 2;
+  return 3;
+};
 
 function AccountModal({ item, orgs, onClose, onSaved }) {
   const [form, setForm] = useState(item
@@ -189,17 +274,14 @@ function AccountModal({ item, orgs, onClose, onSaved }) {
           </Select>
           <Input label="Account / handle" value={form.accountName} onChange={(e) => set('accountName', e.target.value)} placeholder="@college" />
           <Input label="Profile / website URL" value={form.profileUrl} onChange={(e) => set('profileUrl', e.target.value)} placeholder="https://…" />
-          <Input label="Owner name" value={form.ownerName} onChange={(e) => set('ownerName', e.target.value)} />
-          <Input label="Owner email" value={form.ownerEmail} onChange={(e) => set('ownerEmail', e.target.value)} />
-          <Input label="Rating (0–5)" type="number" min="0" max="5" step="0.1" value={form.rating} onChange={(e) => set('rating', e.target.value)} />
-          <Input label="People with access" type="number" min="0" value={form.accessCount} onChange={(e) => set('accessCount', e.target.value)} />
+          <Input label="People with access (optional)" type="number" min="0" value={form.accessCount} onChange={(e) => set('accessCount', e.target.value)} />
         </div>
         <Input label="Linked emails (comma separated)" value={form.linkedEmails} onChange={(e) => set('linkedEmails', e.target.value)} placeholder="a@x.com, b@x.com" />
 
         <div>
           <div className="mb-2 flex items-center justify-between">
-            <span className="text-sm font-medium text-slate-600 dark:text-slate-300">Handlers (coordinators + contact)</span>
-            <Button type="button" size="sm" variant="ghost" onClick={() => set('handlers', [...form.handlers, { ...blankHandler }])}><Plus className="h-4 w-4" /> Add handler</Button>
+            <span className="text-sm font-medium text-slate-600 dark:text-slate-300">Admins / handlers</span>
+            <Button type="button" size="sm" variant="ghost" onClick={() => set('handlers', [...form.handlers, { ...blankHandler }])}><Plus className="h-4 w-4" /> Add admin</Button>
           </div>
           <div className="space-y-2">
             {form.handlers.map((h, i) => (
@@ -207,7 +289,12 @@ function AccountModal({ item, orgs, onClose, onSaved }) {
                 <Input className="sm:col-span-3" placeholder="Name" value={h.name} onChange={(e) => setHandler(i, 'name', e.target.value)} />
                 <Input className="sm:col-span-3" placeholder="Email" value={h.email} onChange={(e) => setHandler(i, 'email', e.target.value)} />
                 <Input className="sm:col-span-3" placeholder="Phone" value={h.phone} onChange={(e) => setHandler(i, 'phone', e.target.value)} />
-                <Input className="sm:col-span-2" placeholder="Role" value={h.role} onChange={(e) => setHandler(i, 'role', e.target.value)} />
+                <Select className="sm:col-span-2" value={h.role} onChange={(e) => setHandler(i, 'role', e.target.value)}>
+                  <option value="">Role…</option>
+                  <option value="Super Admin">Super Admin</option>
+                  <option value="Content Admin">Content Admin</option>
+                  <option value="Portfolio Admin">Portfolio Admin</option>
+                </Select>
                 <button type="button" onClick={() => set('handlers', form.handlers.filter((_, idx) => idx !== i))} className="flex items-center justify-center rounded-lg py-2 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 sm:col-span-1"><X className="h-4 w-4" /></button>
               </div>
             ))}

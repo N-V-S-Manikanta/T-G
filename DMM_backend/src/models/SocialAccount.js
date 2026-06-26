@@ -24,7 +24,6 @@ const socialAccountSchema = new mongoose.Schema(
     ownerEmail: { type: String, default: '' },
     linkedEmails: [{ type: String, trim: true }], // emails linked to the account
     handlers: [handlerSchema], // coordinators handling this account
-    rating: { type: Number, default: 0 }, // 0–5
     accessCount: { type: Number, default: 0 }, // how many people can access it
     notes: { type: String, default: '' },
   },

@@ -23,7 +23,6 @@ const apply = (doc, body) => {
   ['platform', 'accountName', 'profileUrl', 'ownerName', 'ownerEmail', 'notes'].forEach((f) => {
     if (body[f] !== undefined) doc[f] = body[f];
   });
-  if (body.rating !== undefined) doc.rating = Math.max(0, Math.min(5, Number(body.rating) || 0));
   if (body.accessCount !== undefined) doc.accessCount = Math.max(0, Number(body.accessCount) || 0);
   if (body.linkedEmails !== undefined) doc.linkedEmails = cleanEmails(body.linkedEmails);
   if (body.handlers !== undefined) doc.handlers = cleanHandlers(body.handlers);
@@ -202,11 +201,6 @@ export const importSocialAccounts = asyncHandler(async (req, res) => {
       for (const n of people.names) addHandler(doc, n, role);
       for (const e of people.emails) {
         if (!doc.linkedEmails.includes(e)) doc.linkedEmails.push(e);
-        if (!doc.ownerEmail) doc.ownerEmail = e;
-      }
-      // Use the first Super Admin row's names as the headline owner.
-      if (/super/i.test(adminType) && !doc.ownerName && people.names.length) {
-        doc.ownerName = people.names.join(', ');
       }
     }
     if (note && doc.notes && doc.notes !== note && !doc.notes.includes(note)) {
