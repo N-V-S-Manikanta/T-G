@@ -283,19 +283,24 @@ function AccountModal({ item, orgs, onClose, onSaved }) {
             <span className="text-sm font-medium text-slate-600 dark:text-slate-300">Admins / handlers</span>
             <Button type="button" size="sm" variant="ghost" onClick={() => set('handlers', [...form.handlers, { ...blankHandler }])}><Plus className="h-4 w-4" /> Add admin</Button>
           </div>
-          <div className="space-y-2">
+          <div className="space-y-3">
             {form.handlers.map((h, i) => (
-              <div key={i} className="grid grid-cols-1 gap-2 sm:grid-cols-12">
-                <Input className="sm:col-span-3" placeholder="Name" value={h.name} onChange={(e) => setHandler(i, 'name', e.target.value)} />
-                <Input className="sm:col-span-3" placeholder="Email" value={h.email} onChange={(e) => setHandler(i, 'email', e.target.value)} />
-                <Input className="sm:col-span-3" placeholder="Phone" value={h.phone} onChange={(e) => setHandler(i, 'phone', e.target.value)} />
-                <Select className="sm:col-span-2" value={h.role} onChange={(e) => setHandler(i, 'role', e.target.value)}>
-                  <option value="">Role…</option>
-                  <option value="Super Admin">Super Admin</option>
-                  <option value="Content Admin">Content Admin</option>
-                  <option value="Portfolio Admin">Portfolio Admin</option>
-                </Select>
-                <button type="button" onClick={() => set('handlers', form.handlers.filter((_, idx) => idx !== i))} className="flex items-center justify-center rounded-lg py-2 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 sm:col-span-1"><X className="h-4 w-4" /></button>
+              <div key={i} className="rounded-xl border border-slate-200 p-3 dark:border-slate-700">
+                <div className="mb-2 flex items-center justify-between">
+                  <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">Admin {i + 1}</span>
+                  <button type="button" onClick={() => set('handlers', form.handlers.filter((_, idx) => idx !== i))} className="rounded-lg p-1 text-slate-400 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-500/10" title="Remove admin"><X className="h-4 w-4" /></button>
+                </div>
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  <Input placeholder="Name" value={h.name} onChange={(e) => setHandler(i, 'name', e.target.value)} />
+                  <Select value={h.role} onChange={(e) => setHandler(i, 'role', e.target.value)}>
+                    <option value="">Role…</option>
+                    <option value="Super Admin">Super Admin</option>
+                    <option value="Content Admin">Content Admin</option>
+                    <option value="Portfolio Admin">Portfolio Admin</option>
+                  </Select>
+                  <Input type="email" placeholder="Email" value={h.email} onChange={(e) => setHandler(i, 'email', e.target.value)} />
+                  <Input placeholder="Phone" value={h.phone} onChange={(e) => setHandler(i, 'phone', e.target.value)} />
+                </div>
               </div>
             ))}
           </div>
