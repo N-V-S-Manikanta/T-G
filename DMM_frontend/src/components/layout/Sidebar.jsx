@@ -3,7 +3,7 @@ import {
   LayoutDashboard, FileImage, Images, CheckSquare, BarChart3, CalendarDays,
   FileText, Bell, Settings, X, TrendingUp, Palette, Share2, ShoppingBag,
 } from 'lucide-react';
-import { cn } from '../../lib/utils.js';
+import { cn, roleLabel } from '../../lib/utils.js';
 import { useAuthStore } from '../../store/authStore.js';
 
 const MAIN_NAV = [
@@ -75,11 +75,11 @@ export default function Sidebar({ open, onClose }) {
         <div className="border-t border-white/10 p-4">
           <div className="flex items-center gap-2.5 rounded-xl bg-white/5 p-3">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-500/20 text-xs font-bold text-brand-300">
-              {user?.role?.[0]}
+              {user?.name?.[0]}
             </div>
             <div className="min-w-0">
               <p className="truncate text-xs font-semibold text-white">{user?.name}</p>
-              <p className="text-[11px] text-slate-400">{user?.role}</p>
+              <p className="text-[11px] text-slate-400">{roleLabel(user)}</p>
             </div>
           </div>
         </div>

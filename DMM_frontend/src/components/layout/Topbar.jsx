@@ -6,6 +6,7 @@ import { useAuthStore } from '../../store/authStore.js';
 import { useThemeStore } from '../../store/themeStore.js';
 import { notificationApi } from '../../api/endpoints.js';
 import { Avatar } from '../ui/primitives.jsx';
+import { roleLabel } from '../../lib/utils.js';
 import GlobalSearch from './GlobalSearch.jsx';
 
 export default function Topbar({ onMenu }) {
@@ -50,7 +51,7 @@ export default function Topbar({ onMenu }) {
             <Avatar src={user?.avatar} name={user?.name} size="sm" />
             <div className="hidden text-left sm:block">
               <p className="text-xs font-semibold leading-tight text-slate-700 dark:text-slate-200">{user?.name}</p>
-              <p className="text-[11px] text-slate-400">{user?.role}</p>
+              <p className="text-[11px] text-slate-400">{roleLabel(user)}</p>
             </div>
           </button>
           {menuOpen && (

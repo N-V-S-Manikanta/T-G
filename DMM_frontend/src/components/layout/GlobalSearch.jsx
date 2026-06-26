@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Search, CheckSquare, FileImage, Images, User, Loader2 } from 'lucide-react';
 import { searchApi } from '../../api/endpoints.js';
 import { Badge } from '../ui/primitives.jsx';
+import { roleLabel } from '../../lib/utils.js';
 
 // Debounced global search with a results dropdown. Searches approvals,
 // templates, assets and (for CEO) users via /api/search.
@@ -82,7 +83,7 @@ export default function GlobalSearch() {
               <div key={u._id} className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm">
                 <span className="font-medium text-slate-700 dark:text-slate-200">{u.name}</span>
                 <span className="text-xs text-slate-400">{u.email}</span>
-                <Badge className="ml-auto">{u.role}</Badge>
+                <Badge className="ml-auto">{roleLabel(u)}</Badge>
               </div>
             )} />
         </div>

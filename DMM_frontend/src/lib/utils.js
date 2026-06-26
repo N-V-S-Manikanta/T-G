@@ -26,6 +26,10 @@ export const formatBytes = (bytes) => {
 export const initials = (name = '') =>
   name.split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase();
 
+// People see three tiers: Super Admin → Admin (org manager, stored as CEO) → User.
+// The internal role enum stays ADMIN/CEO/USER.
+export const roleLabel = (u) => (u?.isSuperAdmin ? 'Super Admin' : u?.role === 'USER' ? 'User' : 'Admin');
+
 // Is this approval media item (or a raw File) a video? Checks the stored
 // mediaType, the File mime type, or the URL/name extension as a fallback.
 export const isVideo = (m) =>

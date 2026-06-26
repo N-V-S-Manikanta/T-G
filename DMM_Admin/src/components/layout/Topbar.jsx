@@ -4,6 +4,7 @@ import { Menu, Sun, Moon, LogOut } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore.js';
 import { useThemeStore } from '../../store/themeStore.js';
 import { Avatar } from '../ui/primitives.jsx';
+import { roleLabel } from '../../lib/utils.js';
 
 export default function Topbar({ onMenu }) {
   const navigate = useNavigate();
@@ -30,7 +31,7 @@ export default function Topbar({ onMenu }) {
             <Avatar src={user?.avatar} name={user?.name} size="sm" />
             <div className="hidden text-left sm:block">
               <p className="text-xs font-semibold leading-tight text-slate-700 dark:text-slate-200">{user?.name}</p>
-              <p className="text-[11px] text-slate-400">Admin</p>
+              <p className="text-[11px] text-slate-400">{roleLabel(user)}</p>
             </div>
           </button>
           {menuOpen && (

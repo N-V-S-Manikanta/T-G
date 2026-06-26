@@ -33,11 +33,12 @@ export default function Overview() {
   const totalPosts = orgs.reduce((a, o) => a + (o.postCount || 0), 0);
   const activity = activityData?.logs || [];
 
+  const superAdmins = users.filter((u) => u.isSuperAdmin).length;
   const cards = [
     { label: 'Organizations', value: orgs.length, icon: Building2, tone: 'text-brand-600 bg-brand-50 dark:bg-brand-500/10' },
     { label: 'Total Users', value: users.length, icon: UsersIcon, tone: 'text-sky-600 bg-sky-50 dark:bg-sky-500/10' },
-    { label: 'Admins', value: counts.ADMIN || 0, icon: ShieldCheck, tone: 'text-violet-600 bg-violet-50 dark:bg-violet-500/10' },
-    { label: 'CEOs', value: counts.CEO || 0, icon: Crown, tone: 'text-amber-600 bg-amber-50 dark:bg-amber-500/10' },
+    { label: 'Super Admin', value: superAdmins, icon: ShieldCheck, tone: 'text-violet-600 bg-violet-50 dark:bg-violet-500/10' },
+    { label: 'Admins', value: counts.CEO || 0, icon: Crown, tone: 'text-amber-600 bg-amber-50 dark:bg-amber-500/10' },
     { label: 'Users', value: counts.USER || 0, icon: UserIcon, tone: 'text-sky-600 bg-sky-50 dark:bg-sky-500/10' },
     { label: 'Total Posts', value: totalPosts, icon: Send, tone: 'text-emerald-600 bg-emerald-50 dark:bg-emerald-500/10' },
   ];

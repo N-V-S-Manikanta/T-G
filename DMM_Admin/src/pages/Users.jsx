@@ -10,10 +10,13 @@ import PageHeader from '../components/layout/PageHeader.jsx';
 import { Button } from '../components/ui/Button.jsx';
 import { Card, Input, Select, Badge, Avatar, Skeleton, EmptyState } from '../components/ui/primitives.jsx';
 import { Modal } from '../components/ui/Modal.jsx';
-import { formatDate, ROLE_STYLES } from '../lib/utils.js';
+import { formatDate, roleLabel, roleStyle } from '../lib/utils.js';
 
-const ROLES = ['ADMIN', 'CEO', 'USER'];
-const ROLE_ICON = { ADMIN: ShieldCheck, CEO: Crown, USER: UserIcon };
+// Filter options (label → internal role value). Super Admin is seed-only.
+const ROLE_FILTERS = [{ value: 'ADMIN', label: 'Super Admin' }, { value: 'CEO', label: 'Admin' }, { value: 'USER', label: 'User' }];
+// Roles the super admin can assign when creating/editing (not Super Admin).
+const CREATE_ROLES = [{ value: 'CEO', label: 'Admin' }, { value: 'USER', label: 'User' }];
+const roleIcon = (u) => (u?.isSuperAdmin ? ShieldCheck : u?.role === 'USER' ? UserIcon : Crown);
 
 export default function Users() {
   const qc = useQueryClient();
@@ -40,10 +43,11 @@ export default function Users() {
     onError: (e) => toast.error(e.response?.data?.message || 'Update failed'),
   });
 
+  const superAdmins = users.filter((u) => u.isSuperAdmin).length;
   const stats = [
     { label: 'Total Users', value: users.length, icon: UsersIcon, cls: 'text-brand-600 bg-brand-50 dark:bg-brand-500/10' },
-    { label: 'Admins', value: counts.ADMIN || 0, icon: ShieldCheck, cls: 'text-violet-600 bg-violet-50 dark:bg-violet-500/10' },
-    { label: 'CEOs', value: counts.CEO || 0, icon: Crown, cls: 'text-amber-600 bg-amber-50 dark:bg-amber-500/10' },
+    { label: 'Super Admin', value: superAdmins, icon: ShieldCheck, cls: 'text-violet-600 bg-violet-50 dark:bg-violet-500/10' },
+    { label: 'Admins', value: counts.CEO || 0, icon: Crown, cls: 'text-amber-600 bg-amber-50 dark:bg-amber-500/10' },
     { label: 'Users', value: counts.USER || 0, icon: UserIcon, cls: 'text-sky-600 bg-sky-50 dark:bg-sky-500/10' },
   ];
 
@@ -68,7 +72,7 @@ export default function Users() {
         </div>
         <Select className="sm:w-44" value={filters.role} onChange={(e) => setFilters({ ...filters, role: e.target.value })}>
           <option value="All">All Roles</option>
-          {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
+          {ROLE_FILTERS.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
         </Select>
         <Select className="sm:w-52" value={filters.organization} onChange={(e) => setFilters({ ...filters, organization: e.target.value })}>
           <option value="All">All Organizations</option>
@@ -97,7 +101,7 @@ export default function Users() {
               </thead>
               <tbody className="divide-y divide-slate-50 dark:divide-slate-800/50">
                 {users.map((u) => {
-                  const RoleIcon = ROLE_ICON[u.role] || UserIcon;
+                  const RoleIcon = roleIcon(u);
                   const isSelf = u._id === me?._id;
                   return (
                     <tr key={u._id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
@@ -119,7 +123,7 @@ export default function Users() {
                         </div>
                       </td>
                       <td className="px-5 py-3">
-                        <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold ${ROLE_STYLES[u.role]}`}><RoleIcon className="h-3 w-3" />{u.role}</span>
+                        <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold ${roleStyle(u)}`}><RoleIcon className="h-3 w-3" />{roleLabel(u)}</span>
                       </td>
                       <td className="px-5 py-3">
                         {u.organization ? (
@@ -211,7 +215,7 @@ function UserFormModal({ editUser, onClose, onSaved }) {
         {!editUser && <Input label="Temporary password" type="password" required value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} placeholder="At least 6 characters" />}
         <div className="grid grid-cols-2 gap-4">
           <Select label="Role" value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}>
-            {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
+            {CREATE_ROLES.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
           </Select>
           <Input label="Job title" value={form.jobTitle} onChange={(e) => setForm({ ...form, jobTitle: e.target.value })} placeholder="e.g. Manager" />
         </div>
@@ -229,7 +233,7 @@ function UserFormModal({ editUser, onClose, onSaved }) {
             {orgs.map((o) => <option key={o._id} value={o._id}>{o.name}</option>)}
           </Select>
         ) : (
-          <p className="rounded-lg bg-violet-50 dark:bg-violet-500/10 px-3 py-2 text-xs text-violet-700 dark:text-violet-300">Admins are global and not tied to a single organization.</p>
+          <p className="rounded-lg bg-violet-50 dark:bg-violet-500/10 px-3 py-2 text-xs text-violet-700 dark:text-violet-300">The Super Admin is global and not tied to a single organization.</p>
         )}
         {editUser && <p className="text-xs text-slate-400">Email can't be changed. Use "Reset password" to set a new password.</p>}
         <div className="flex justify-end gap-2 pt-2">

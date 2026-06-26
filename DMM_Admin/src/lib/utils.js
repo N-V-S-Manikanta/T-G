@@ -39,3 +39,13 @@ export const ROLE_STYLES = {
   CEO: 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400',
   USER: 'bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-400',
 };
+
+// Three tiers shown to people: Super Admin → Admin (org manager, stored as CEO)
+// → User. The internal role enum stays ADMIN/CEO/USER.
+export const roleLabel = (u) => (u?.isSuperAdmin ? 'Super Admin' : u?.role === 'USER' ? 'User' : 'Admin');
+export const roleStyle = (u) =>
+  u?.isSuperAdmin
+    ? ROLE_STYLES.ADMIN
+    : u?.role === 'USER'
+      ? ROLE_STYLES.USER
+      : ROLE_STYLES.CEO;

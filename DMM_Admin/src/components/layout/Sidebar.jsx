@@ -1,7 +1,6 @@
 import { NavLink } from 'react-router-dom';
 import { LayoutDashboard, Building2, Users, Activity, BarChart3, CalendarDays, Settings, X, ShieldCheck, CheckSquare, Images, Share2, ShoppingBag, Target, Globe } from 'lucide-react';
 import { cn } from '../../lib/utils.js';
-import { useAuthStore } from '../../store/authStore.js';
 
 const NAV = [
   { to: '/dashboard', label: 'Overview', icon: LayoutDashboard },
@@ -19,13 +18,7 @@ const NAV = [
   { to: '/settings', label: 'Settings', icon: Settings },
 ];
 
-// The "t@g" wordmark with the @ in brand orange.
-const Wordmark = () => (
-  <span className="lowercase tracking-tight">t<span className="text-brand-500">@</span>g</span>
-);
-
 export default function Sidebar({ open, onClose }) {
-  const { user } = useAuthStore();
   const linkClass = ({ isActive }) => cn('sidebar-link', isActive && 'sidebar-link-active');
 
   return (
@@ -36,14 +29,11 @@ export default function Sidebar({ open, onClose }) {
         open ? 'translate-x-0' : '-translate-x-full'
       )}>
         <div className="flex h-16 items-center justify-between px-5">
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-xl bg-white shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-xl bg-white shadow-sm">
               <img src="/logo.png" alt="t@g" className="h-full w-full object-contain p-1" />
             </div>
-            <div>
-              <p className="text-base font-extrabold leading-tight text-white"><Wordmark /></p>
-              <p className="text-[11px] text-slate-400">Admin Console</p>
-            </div>
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-300">Admin Console</p>
           </div>
           <button onClick={onClose} className="rounded-lg p-1.5 text-slate-300 hover:bg-white/10 lg:hidden"><X className="h-5 w-5" /></button>
         </div>
@@ -56,18 +46,6 @@ export default function Sidebar({ open, onClose }) {
             </NavLink>
           ))}
         </nav>
-
-        <div className="border-t border-white/10 p-4">
-          <div className="flex items-center gap-2.5 rounded-xl bg-white/5 p-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-500/20 text-xs font-bold text-brand-300">
-              {user?.name?.[0]}
-            </div>
-            <div className="min-w-0">
-              <p className="truncate text-xs font-semibold text-white">{user?.name}</p>
-              <p className="text-[11px] text-slate-400">Administrator</p>
-            </div>
-          </div>
-        </div>
       </aside>
     </>
   );
