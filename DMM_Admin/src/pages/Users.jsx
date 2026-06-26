@@ -18,6 +18,7 @@ const ROLE_ICON = { ADMIN: ShieldCheck, CEO: Crown, USER: UserIcon };
 export default function Users() {
   const qc = useQueryClient();
   const { user: me } = useAuthStore();
+  const canManage = !!me?.isSuperAdmin; // only the super admin creates / edits accounts
   const [filters, setFilters] = useState({ search: '', role: 'All', organization: 'All' });
   const [modal, setModal] = useState(null);
   const [menuFor, setMenuFor] = useState(null);
@@ -48,8 +49,8 @@ export default function Users() {
 
   return (
     <div>
-      <PageHeader title="User Management" subtitle="Create and manage accounts, roles and access."
-        actions={<Button onClick={() => setModal({ type: 'create' })}><UserPlus className="h-4 w-4" /> Add User</Button>} />
+      <PageHeader title="User Management" subtitle={canManage ? 'Create and manage accounts, roles and access.' : 'View accounts and roles. Only the super admin can create or edit accounts.'}
+        actions={canManage && <Button onClick={() => setModal({ type: 'create' })}><UserPlus className="h-4 w-4" /> Add User</Button>} />
 
       <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
         {stats.map((s) => (
@@ -78,8 +79,8 @@ export default function Users() {
       {isLoading ? (
         <div className="space-y-2">{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-16" />)}</div>
       ) : users.length === 0 ? (
-        <EmptyState icon={UsersIcon} title="No users found" description="Add a user to get started."
-          action={<Button onClick={() => setModal({ type: 'create' })}><UserPlus className="h-4 w-4" /> Add User</Button>} />
+        <EmptyState icon={UsersIcon} title="No users found" description={canManage ? 'Add a user to get started.' : 'No users to show.'}
+          action={canManage && <Button onClick={() => setModal({ type: 'create' })}><UserPlus className="h-4 w-4" /> Add User</Button>} />
       ) : (
         <Card className="overflow-hidden">
           <div className="overflow-x-auto">
@@ -133,6 +134,9 @@ export default function Users() {
                       </td>
                       <td className="px-5 py-3 text-slate-500 dark:text-slate-400">{formatDate(u.createdAt)}</td>
                       <td className="px-5 py-3">
+                        {!canManage ? (
+                          <div className="flex justify-end text-xs text-slate-300 dark:text-slate-600">—</div>
+                        ) : (
                         <div className="relative flex justify-end">
                           <button onClick={() => setMenuFor(menuFor === u._id ? null : u._id)} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"><MoreVertical className="h-4 w-4" /></button>
                           {menuFor === u._id && (
@@ -147,6 +151,7 @@ export default function Users() {
                             </>
                           )}
                         </div>
+                        )}
                       </td>
                     </tr>
                   );

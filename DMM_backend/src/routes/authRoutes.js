@@ -1,7 +1,6 @@
 import express from 'express';
 import {
   setupStatus,
-  setup,
   login,
   getMe,
   logout,
@@ -13,8 +12,9 @@ import { protect } from '../middleware/auth.js';
 
 const router = express.Router();
 
+// The first admin is no longer created here — a built-in super admin is seeded
+// on startup. setup-status is kept (always "configured") for the clients.
 router.get('/setup-status', setupStatus);
-router.post('/setup', setup);
 router.get('/email-status', emailStatus);
 router.post('/login', login);
 router.post('/logout', logout);

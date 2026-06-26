@@ -16,14 +16,6 @@ export const useAuthStore = create(
         return data.user;
       },
 
-      // First-run: create the initial admin account.
-      setup: async (payload) => {
-        const data = await authApi.setup(payload);
-        localStorage.setItem('dmm_token', data.token);
-        set({ user: data.user, token: data.token });
-        return data.user;
-      },
-
       logout: () => {
         localStorage.removeItem('dmm_token');
         set({ user: null, token: null });

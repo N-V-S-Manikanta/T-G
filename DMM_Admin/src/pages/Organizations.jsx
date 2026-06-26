@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { organizationApi } from '../api/endpoints.js';
+import { useAuthStore } from '../store/authStore.js';
 import PageHeader from '../components/layout/PageHeader.jsx';
 import { Button } from '../components/ui/Button.jsx';
 import { Card, Input, Skeleton, EmptyState } from '../components/ui/primitives.jsx';
@@ -14,6 +15,8 @@ import { formatDate } from '../lib/utils.js';
 
 export default function Organizations() {
   const qc = useQueryClient();
+  const { user: me } = useAuthStore();
+  const canManage = !!me?.isSuperAdmin; // only the super admin manages organizations
   const [search, setSearch] = useState('');
   const [modal, setModal] = useState(null);
   const [menuFor, setMenuFor] = useState(null);
@@ -37,8 +40,8 @@ export default function Organizations() {
 
   return (
     <div>
-      <PageHeader title="Organizations" subtitle="Each organization is an isolated workspace with its own users, content and analytics."
-        actions={<Button onClick={() => setModal({ type: 'create' })}><Plus className="h-4 w-4" /> New Organization</Button>} />
+      <PageHeader title="Organizations" subtitle={canManage ? 'Each organization is an isolated workspace with its own users, content and analytics.' : 'View organizations. Only the super admin can create or edit them.'}
+        actions={canManage && <Button onClick={() => setModal({ type: 'create' })}><Plus className="h-4 w-4" /> New Organization</Button>} />
 
       <div className="mb-6 grid grid-cols-3 gap-4">
         <Stat icon={Building2} label="Organizations" value={orgs.length} cls="text-brand-600 bg-brand-50 dark:bg-brand-500/10" />
@@ -54,8 +57,8 @@ export default function Organizations() {
       {isLoading ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-48" />)}</div>
       ) : orgs.length === 0 ? (
-        <EmptyState icon={Building2} title="No organizations yet" description="Create your first organization to start onboarding teams."
-          action={<Button onClick={() => setModal({ type: 'create' })}><Plus className="h-4 w-4" /> New Organization</Button>} />
+        <EmptyState icon={Building2} title="No organizations yet" description={canManage ? 'Create your first organization to start onboarding teams.' : 'No organizations to show.'}
+          action={canManage && <Button onClick={() => setModal({ type: 'create' })}><Plus className="h-4 w-4" /> New Organization</Button>} />
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {orgs.map((o, i) => (
@@ -77,6 +80,7 @@ export default function Organizations() {
                       </span>
                     </div>
                   </div>
+                  {canManage && (
                   <div className="relative">
                     <button onClick={() => setMenuFor(menuFor === o._id ? null : o._id)} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"><MoreVertical className="h-4 w-4" /></button>
                     {menuFor === o._id && (
@@ -90,6 +94,7 @@ export default function Organizations() {
                       </>
                     )}
                   </div>
+                  )}
                 </div>
 
                 {o.description && <p className="mt-3 line-clamp-2 text-sm text-slate-400">{o.description}</p>}

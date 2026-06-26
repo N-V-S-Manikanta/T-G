@@ -37,3 +37,13 @@ export const authorize = (...roles) =>
     }
     next();
   });
+
+// Restricts a route to the single built-in super admin — the only account that
+// may create or modify admins, users and organizations.
+export const requireSuperAdmin = asyncHandler(async (req, res, next) => {
+  if (!req.user?.isSuperAdmin) {
+    res.status(403);
+    throw new Error('Only the super admin can manage accounts and organizations');
+  }
+  next();
+});

@@ -107,6 +107,12 @@ export const updateUser = asyncHandler(async (req, res) => {
 
   const { name, role, jobTitle, isActive, organization, skills } = req.body;
 
+  // The super admin is fixed: its role can't be changed and it can't be deactivated.
+  if (user.isSuperAdmin) {
+    if (role && role !== ROLES.ADMIN) { res.status(400); throw new Error('The super admin role cannot be changed'); }
+    if (isActive === false) { res.status(400); throw new Error('The super admin cannot be deactivated'); }
+  }
+
   // Guard: don't allow removing the last active admin or self-demotion lockout
   if (role && role !== user.role && user.role === ROLES.ADMIN && role !== ROLES.ADMIN) {
     const adminCount = await User.countDocuments({ role: ROLES.ADMIN, isActive: true });
@@ -162,6 +168,7 @@ export const adminResetPassword = asyncHandler(async (req, res) => {
 export const deleteUser = asyncHandler(async (req, res) => {
   const user = await User.findById(req.params.id);
   if (!user) { res.status(404); throw new Error('User not found'); }
+  if (user.isSuperAdmin) { res.status(400); throw new Error('The super admin account cannot be deleted'); }
   if (String(user._id) === String(req.user._id)) { res.status(400); throw new Error('You cannot delete your own account'); }
   if (user.role === ROLES.ADMIN) {
     const adminCount = await User.countDocuments({ role: ROLES.ADMIN });

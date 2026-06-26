@@ -2,12 +2,10 @@ import { useEffect, useState } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './store/authStore.js';
 import { useThemeStore, applyTheme } from './store/themeStore.js';
-import { authApi } from './api/endpoints.js';
 
 import AppLayout from './components/layout/AppLayout.jsx';
 import ProtectedRoute from './components/layout/ProtectedRoute.jsx';
 
-import Setup from './pages/Setup.jsx';
 import Login from './pages/Login.jsx';
 import Overview from './pages/Overview.jsx';
 import Organizations from './pages/Organizations.jsx';
@@ -27,16 +25,13 @@ export default function App() {
   const { token, fetchMe } = useAuthStore();
   const { theme } = useThemeStore();
   const [ready, setReady] = useState(false);
-  const [needsSetup, setNeedsSetup] = useState(false);
 
   useEffect(() => { applyTheme(theme); }, [theme]);
 
   useEffect(() => {
     (async () => {
       try {
-        const status = await authApi.setupStatus();
-        setNeedsSetup(status.needsSetup);
-        if (!status.needsSetup && token) await fetchMe();
+        if (token) await fetchMe();
       } catch { /* backend unreachable */ }
       setReady(true);
     })();
@@ -48,15 +43,6 @@ export default function App() {
       <div className="flex h-screen items-center justify-center">
         <div className="h-10 w-10 animate-spin rounded-full border-4 border-brand-200 border-t-brand-600" />
       </div>
-    );
-  }
-
-  if (needsSetup) {
-    return (
-      <Routes>
-        <Route path="/setup" element={<Setup onDone={() => setNeedsSetup(false)} />} />
-        <Route path="*" element={<Navigate to="/setup" replace />} />
-      </Routes>
     );
   }
 

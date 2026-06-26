@@ -15,6 +15,9 @@ const userSchema = new mongoose.Schema(
     },
     password: { type: String, required: true, minlength: 6, select: false },
     role: { type: String, enum: Object.values(ROLES), default: ROLES.USER },
+    // The single built-in super admin. Only this account can create/edit other
+    // admins, users and organizations. Seeded on startup; never set via the API.
+    isSuperAdmin: { type: Boolean, default: false },
     // CEO and USER belong to one organization. ADMIN is global (organization = null).
     organization: { type: mongoose.Schema.Types.ObjectId, ref: 'Organization', default: null, index: true },
     avatar: { type: String, default: '' },
