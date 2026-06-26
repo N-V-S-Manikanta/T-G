@@ -56,7 +56,7 @@ export default function AnalyticsReport({ report, isLoading }) {
     <div className="space-y-5">
       {previous && (
         <p className="text-xs text-slate-400">
-          Comparing latest entry ({fmtDate(latest.date)}) with previous ({fmtDate(previous.date)})
+          Week-over-week: comparing {fmtDate(latest.date)} with a week earlier ({fmtDate(previous.date)})
         </p>
       )}
 

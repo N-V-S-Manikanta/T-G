@@ -97,7 +97,15 @@ export const getPlatformReport = asyncHandler(async (req, res) => {
   // exports render in full, not just the last couple of weeks.
   const snapshots = await Analytics.find({ organization: orgId, platform }).sort({ date: -1 }).limit(120).lean();
   const latest = snapshots[0] || null;
-  const previous = snapshots[1] || null;
+  // Week-over-week: compare the latest entry against the most recent entry that
+  // is at least 7 days older (so daily uploads compare to ~the same day last
+  // week, not just yesterday). Falls back to the immediately previous entry.
+  let previous = snapshots[1] || null;
+  if (latest) {
+    const weekAgo = new Date(latest.date).getTime() - 7 * 24 * 60 * 60 * 1000;
+    const prior = snapshots.find((s, i) => i > 0 && new Date(s.date).getTime() <= weekAgo);
+    if (prior) previous = prior;
+  }
   const fields = flatFields(platform);
 
   const deltas = {};
