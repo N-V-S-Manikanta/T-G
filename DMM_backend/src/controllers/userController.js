@@ -11,6 +11,7 @@ const sanitize = (u) => ({
   name: u.name,
   email: u.email,
   role: u.role,
+  isSuperAdmin: !!u.isSuperAdmin,
   avatar: u.avatar,
   jobTitle: u.jobTitle,
   skills: u.skills || [],
